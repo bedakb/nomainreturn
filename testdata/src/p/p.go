@@ -12,6 +12,15 @@ func ok() bool {
 func main() {
 	fmt.Println("start")
 
+	myFunc := func() {
+		ok := true
+		if !ok {
+			return
+		}
+		fmt.Println("ok")
+	}
+	myFunc()
+
 	if e := err(); e != nil {
 		fmt.Println(err)
 		return // want "return found in main"
