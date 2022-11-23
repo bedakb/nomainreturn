@@ -14,10 +14,8 @@ func TestAll(t *testing.T) {
 		t.Fatalf("Failed to get wd: %s", err)
 	}
 
-	t.Logf("wd is %+v", wd)
-
 	analysistest.Run(t,
 		filepath.Join(filepath.Dir(wd), "testdata"),
-		Analyzer,
+		NewAnalyzer(NewDefaultConfig()),
 		"p")
 }
