@@ -12,8 +12,8 @@ import (
 // DefaultAllowPackages is an allow-list of packages to include when running the linter.
 var DefaultAllowPackages = []string{"main"}
 
-// NoMainReturnConfig is a set of configuration values which configure the linter behavior.
-type NoMainReturnConfig struct {
+// Config is a set of configuration values which configure the linter behavior.
+type Config struct {
 	// AllowPackages defines a list of packages that linter should check.
 	//
 	// Generally, package main will be only allowed package, but for testing cases
@@ -21,13 +21,13 @@ type NoMainReturnConfig struct {
 	AllowPackages []string `mapstructure:"allowPackages" yaml:"allowPackages"`
 }
 
-// NewDefaultConfig returns default linter config.
-func NewDefaultConfig() NoMainReturnConfig {
-	return NoMainReturnConfig{AllowPackages: DefaultAllowPackages}
+// DefaultConfig is a default linter config.
+var DefaultConfig = Config{
+	AllowPackages: DefaultAllowPackages,
 }
 
 // NewAnalyzer creates new nomainreturn analyzer.
-func NewAnalyzer(cfg NoMainReturnConfig) *analysis.Analyzer {
+func NewAnalyzer(cfg Config) *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:     "nomainreturn",
 		Doc:      "reports use of return keyword in the main",
@@ -38,12 +38,14 @@ func NewAnalyzer(cfg NoMainReturnConfig) *analysis.Analyzer {
 
 type analysisRunner func(*analysis.Pass) (interface{}, error)
 
-func run(cfg NoMainReturnConfig) analysisRunner {
+func run(cfg Config) analysisRunner {
 	return func(pass *analysis.Pass) (interface{}, error) {
-		for _, pkg := range cfg.AllowPackages {
-			if pass.Pkg != nil && pass.Pkg.Name() != pkg {
-				return nil, nil
-			}
+		if pass.Pkg == nil {
+			return nil, nil
+		}
+
+		if pkgAllowed := isPkgAllowed(pass.Pkg.Name(), cfg.AllowPackages); !pkgAllowed {
+			return nil, nil
 		}
 
 		inspector := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
@@ -78,4 +80,15 @@ func run(cfg NoMainReturnConfig) analysisRunner {
 		})
 		return nil, nil
 	}
+}
+
+func isPkgAllowed(pkg string, allowedPkgs []string) bool {
+	var allowed bool
+	for _, p := range allowedPkgs {
+		if p == pkg {
+			allowed = true
+			break
+		}
+	}
+	return allowed
 }
